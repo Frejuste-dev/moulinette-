@@ -595,7 +595,6 @@ class FileProcessorService:
 
                 if original_lots.empty:
                     # Si pas de lots trouvés, créer une ligne avec les données agrégées
-                    # Vérifier si l'article a vraiment un numéro de lot ou non
                     template_rows.append(
                         {
                             "Numéro Session": row["Numero_Session"],
@@ -604,40 +603,27 @@ class FileProcessorService:
                             "Statut Article": row["STATUT"],
                             "Quantité Théorique": row["Quantite_Theorique_Totale"],
                             "Quantité Réelle": 0,
-                            "Numéro Lot": "",
                             "Unites": row["UNITE"],
                             "Depots": row["ZONE_PK"],
                             "Emplacements": row["EMPLACEMENT"],
                         }
                     )
                 else:
-                    # Créer une ligne par lot
-                    for _, lot_row in original_lots.iterrows():
-                        # Vérifier si le numéro de lot est valide
-                        numero_lot = lot_row["NUMERO_LOT"]
-                        if (
-                            pd.isna(numero_lot)
-                            or str(numero_lot).strip() == ""
-                            or str(numero_lot).strip().upper() == "NAN"
-                        ):
-                            numero_lot = ""  # Laisser vide si pas de lot
-                        else:
-                            numero_lot = str(numero_lot).strip()
-
-                        template_rows.append(
-                            {
-                                "Numéro Session": row["Numero_Session"],
-                                "Numéro Inventaire": row["NUMERO_INVENTAIRE"],
-                                "Code Article": row["CODE_ARTICLE"],
-                                "Statut Article": row["STATUT"],
-                                "Quantité Théorique": lot_row["QUANTITE"],
-                                "Quantité Réelle": 0,
-                                "Numéro Lot": numero_lot,
-                                "Unites": row["UNITE"],
-                                "Depots": row["ZONE_PK"],
-                                "Emplacements": row["EMPLACEMENT"],
-                            }
-                        )
+                    # Créer une ligne par lot - mais maintenant on agrège vraiment par article
+                    # Plus besoin de créer une ligne par lot individuel
+                    template_rows.append(
+                        {
+                            "Numéro Session": row["Numero_Session"],
+                            "Numéro Inventaire": row["NUMERO_INVENTAIRE"],
+                            "Code Article": row["CODE_ARTICLE"],
+                            "Statut Article": row["STATUT"],
+                            "Quantité Théorique": row["Quantite_Theorique_Totale"],
+                            "Quantité Réelle": 0,
+                            "Unites": row["UNITE"],
+                            "Depots": row["ZONE_PK"],
+                            "Emplacements": row["EMPLACEMENT"],
+                        }
+                    )
 
             template_df = pd.DataFrame(template_rows)
 

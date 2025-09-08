@@ -193,8 +193,32 @@ class LotecartProcessor:
                     )
                     continue
                 
-                # Parser la ligne de référence
-                parts = str(reference_line).split(";")
+                # Validation et conversion sécurisée de la ligne de référence
+                try:
+                    # Vérifier si c'est NaN (pour les floats)
+                    import pandas as pd
+                    if pd.isna(reference_line):
+                        logger.warning(
+                            f"⚠️ Ligne de référence NaN pour LOTECART {adjustment['CODE_ARTICLE']}"
+                        )
+                        continue
+                    
+                    # Convertir en string de manière sécurisée
+                    reference_line_str = str(reference_line).strip()
+                    if not reference_line_str or reference_line_str.lower() in ['nan', 'none', '']:
+                        logger.warning(
+                            f"⚠️ Ligne de référence vide ou invalide pour LOTECART {adjustment['CODE_ARTICLE']}"
+                        )
+                        continue
+                    
+                    # Parser la ligne de référence
+                    parts = reference_line_str.split(";")
+                    
+                except Exception as parse_error:
+                    logger.warning(
+                        f"⚠️ Erreur parsing ligne de référence pour LOTECART {adjustment['CODE_ARTICLE']}: {parse_error}"
+                    )
+                    continue
                 
                 if len(parts) < 15:
                     logger.warning(
@@ -382,67 +406,4 @@ class LotecartProcessor:
     def reset_counter(self):
         """Remet à zéro le compteur LOTECART"""
         self.lotecart_counter = 0
-        logger.debug("🔄 Compteur LOTECART remis à zéro")  
-  
-    def generate_lotecart_lines(self, lotecart_adjustments: List[Dict], max_line_number: int) -> List[str]:
-        """
-        Génère les nouvelles lignes LOTECART pour le fichier final
-        
-        Args:
-            lotecart_adjustments: Liste des ajustements LOTECART
-            max_line_number: Numéro de ligne maximum existant
-            
-        Returns:
-            Liste des lignes LOTECART formatées pour le fichier Sage X3
-        """
-        try:
-            new_lines = []
-            current_line_number = max_line_number + 1
-            
-            for adjustment in lotecart_adjustments:
-                if not adjustment.get('is_new_lotecart', False):
-                    continue
-                
-                # Récupérer la ligne de référence
-                reference_line = adjustment.get('reference_line', '')
-                if not reference_line:
-                    logger.warning(f"Pas de ligne de référence pour LOTECART {adjustment['CODE_ARTICLE']}")
-                    continue
-                
-                # Parser la ligne de référence
-                ref_parts = reference_line.split(';')
-                if len(ref_parts) < 15:
-                    logger.warning(f"Ligne de référence invalide pour LOTECART {adjustment['CODE_ARTICLE']}")
-                    continue
-                
-                # Créer la nouvelle ligne LOTECART basée sur la référence
-                new_parts = ref_parts.copy()
-                
-                # Modifier les champs spécifiques à LOTECART
-                new_parts[3] = str(current_line_number)  # Nouveau numéro de ligne
-                new_parts[5] = str(int(adjustment['QUANTITE_CORRIGEE']))  # Quantité théorique = quantité trouvée
-                new_parts[6] = str(int(adjustment['QUANTITE_CORRIGEE']))  # Quantité réelle = quantité trouvée
-                
-                # L'indicateur dépend de la quantité réelle
-                qte_reelle = int(adjustment['QUANTITE_CORRIGEE'])
-                if qte_reelle == 0:
-                    new_parts[7] = "2"  # Indicateur à 2 si quantité réelle = 0
-                else:
-                    new_parts[7] = "1"  # Indicateur à 1 si quantité réelle > 0
-                
-                new_parts[14] = "LOTECART"  # Numéro de lot LOTECART
-                
-                # Construire la ligne finale
-                new_line = ';'.join(new_parts)
-                new_lines.append(new_line)
-                
-                current_line_number += 1
-                
-                logger.info(f"Ligne LOTECART générée: {adjustment['CODE_ARTICLE']} (Qté={qte_reelle}, Indicateur={new_parts[7]})")
-            
-            logger.info(f"🎯 {len(new_lines)} lignes LOTECART générées")
-            return new_lines
-            
-        except Exception as e:
-            logger.error(f"Erreur génération lignes LOTECART: {e}")
-            return []
+        logger.debug("🔄 Compteur LOTECART remis à zéro")
