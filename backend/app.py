@@ -377,7 +377,7 @@ class InventoryProcessor:
                 # Ajouter les nouvelles lignes LOTECART
                 lotecart_adjustments = [
                     adj for adj in distributed_df.to_dict('records') 
-                    if adj.get('is_new_lotecart', False)
+                    if adj.get('is_new_lotecart', False) and not adj.get('is_existing_update', False)
                 ]
                 
                 if lotecart_adjustments:
@@ -398,6 +398,8 @@ class InventoryProcessor:
                             line = ";".join(parts)
                         
                         f.write(line + "\n")
+                
+                logger.info(f"✅ Fichier final généré avec {len(distributed_df)} ajustements dont {len(lotecart_adjustments)} nouvelles lignes LOTECART")
             
             # Mettre à jour la session
             session_service.update_session(session_id, 
