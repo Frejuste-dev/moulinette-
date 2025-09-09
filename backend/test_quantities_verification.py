@@ -45,8 +45,7 @@ def create_test_data():
         'Numéro Inventaire': ['INV001'] * 4,
         'Code Article': ['ART001', 'ART002', 'ART003', 'ART004'],
         'Quantité Théorique': [100, 50, 0, 75],  # Quantités théoriques originales
-        'Quantité Réelle': [95, 55, 10, 70],     # Quantités réelles saisies
-        'Numéro Lot': ['LOT001', 'LOT002', '', 'LOT004']
+        'Quantité Réelle': [95, 55, 10, 70]      # Quantités réelles saisies
     }
     completed_df = pd.DataFrame(completed_data)
     
@@ -85,7 +84,7 @@ def simulate_final_file_generation(original_df, completed_df, distributed_df):
         # Dictionnaires pour la logique
         real_quantities_dict = {}
         for _, row in completed_df.iterrows():
-            key = (row["Code Article"], row["Numéro Inventaire"], str(row["Numéro Lot"]).strip())
+            key = (row["Code Article"], row["Numéro Inventaire"])
             real_quantities_dict[key] = row["Quantité Réelle"]
         
         adjustments_dict = {}
@@ -112,8 +111,7 @@ def simulate_final_file_generation(original_df, completed_df, distributed_df):
             completed_data = {}
             for _, row in completed_df.iterrows():
                 if (row["Code Article"] == code_article and 
-                    row["Numéro Inventaire"] == numero_inventaire and 
-                    str(row["Numéro Lot"]).strip() == numero_lot):
+                    row["Numéro Inventaire"] == numero_inventaire):
                     completed_data = {
                         "qte_theo_originale": row["Quantité Théorique"],
                         "qte_reelle_saisie": row["Quantité Réelle"]
@@ -172,7 +170,7 @@ def verify_final_file(final_file_path, completed_df, distributed_df):
     # Créer les dictionnaires de référence
     completed_dict = {}
     for _, row in completed_df.iterrows():
-        key = (row["Code Article"], row["Numéro Inventaire"], str(row["Numéro Lot"]).strip())
+        key = (row["Code Article"], row["Numéro Inventaire"])
         completed_dict[key] = {
             "qte_theo_originale": row["Quantité Théorique"],
             "qte_reelle_saisie": row["Quantité Réelle"]

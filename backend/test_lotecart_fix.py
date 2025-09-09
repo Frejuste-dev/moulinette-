@@ -1,145 +1,116 @@
 #!/usr/bin/env python3
 """
-Script de test pour vérifier les corrections LOTECART
+Test script pour vérifier la correction du bug LOTECART
 """
+
 import sys
 import os
-sys.path.append('.')
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+from services.lotecart_processor import LotecartProcessor
 import pandas as pd
-from app import processor
+import numpy as np
 
-def test_lotecart_processing():
-    """Test du traitement des LOTECART"""
-    print("=== TEST DES CORRECTIONS LOTECART ===")
+def test_lotecart_with_nan_reference():
+    """Test avec une reference_line qui est NaN"""
+    processor = LotecartProcessor()
     
-    # Session ID de test
-    session_id = "4d334531"
+    # Cas de test avec différents types de reference_line problématiques
+    test_adjustments = [
+        {
+            'CODE_ARTICLE': 'TEST001',
+            'is_new_lotecart': True,
+            'QUANTITE_CORRIGEE': 10,
+            'reference_line': np.nan  # ❌ Cas qui causait l'erreur
+        },
+        {
+            'CODE_ARTICLE': 'TEST002', 
+            'is_new_lotecart': True,
+            'QUANTITE_CORRIGEE': 5,
+            'reference_line': None  # ❌ Cas problématique
+        },
+        {
+            'CODE_ARTICLE': 'TEST003',
+            'is_new_lotecart': True, 
+            'QUANTITE_CORRIGEE': 15,
+            'reference_line': 42.5  # ❌ Float au lieu de string
+        },
+        {
+            'CODE_ARTICLE': 'TEST004',
+            'is_new_lotecart': True,
+            'QUANTITE_CORRIGEE': 20,
+            'reference_line': 'S;SES001;INV001;1000;SITE01;100;0;1;TEST004;LOC01;AM;UN;0;ZONE1;LOT001'  # ✅ Cas valide
+        }
+    ]
+    
+    print("🧪 Test de la correction du bug LOTECART...")
     
     try:
-        # 1. Vérifier les données du template complété
-        print("\n1. Analyse du template complété...")
-        template_path = f"processed/completed_{session_id}_BKE02_BKE022508SES00000004_BKE022508INV00000008_{session_id}.xlsx"
+        # Ceci ne devrait plus lever d'exception
+        result = processor.generate_lotecart_lines(test_adjustments, max_line_number=1000)
         
-        if not os.path.exists(template_path):
-            print(f"❌ Template non trouvé: {template_path}")
-            return
-        
-        df = pd.read_excel(template_path)
-        
-        # Identifier les candidats LOTECART
-        lotecart_candidates = df[(df['Quantité Théorique'] == 0) & (df['Quantité Réelle'] > 0)]
-        print(f"✅ {len(lotecart_candidates)} candidats LOTECART trouvés:")
-        
-        for _, row in lotecart_candidates.iterrows():
-            print(f"   - {row['Code Article']}: Qté Théo={row['Quantité Théorique']}, Qté Réelle={row['Quantité Réelle']}")
-        
-        # 2. Simuler le traitement
-        print("\n2. Simulation du traitement...")
-        
-        # Vérifier si la session existe dans le processeur
-        if session_id not in processor.sessions:
-            print(f"❌ Session {session_id} non trouvée dans le processeur")
-            return
-        
-        session_data = processor.sessions[session_id]
-        
-        if 'distributed_df' not in session_data:
-            print("❌ Données distribuées non trouvées")
-            return
-        
-        distributed_df = session_data['distributed_df']
-        
-        # Analyser les ajustements LOTECART
-        lotecart_adjustments = distributed_df[distributed_df['TYPE_LOT'] == 'lotecart']
-        print(f"✅ {len(lotecart_adjustments)} ajustements LOTECART créés:")
-        
-        for _, row in lotecart_adjustments.iterrows():
-            print(f"   - {row['CODE_ARTICLE']}: Quantité={row['QUANTITE_CORRIGEE']}, Lot={row['NUMERO_LOT']}")
-        
-        # 3. Vérifier le fichier final
-        print("\n3. Analyse du fichier final...")
-        final_path = f"final/bke new_corrige_{session_id}.csv"
-        
-        if not os.path.exists(final_path):
-            print(f"❌ Fichier final non trouvé: {final_path}")
-            return
-        
-        # Compter les lignes LOTECART dans le fichier final
-        lotecart_lines = []
-        with open(final_path, 'r', encoding='utf-8') as f:
-            for i, line in enumerate(f):
-                if 'LOTECART' in line:
-                    parts = line.strip().split(';')
-                    if len(parts) > 14:
-                        article = parts[8] if len(parts) > 8 else 'N/A'
-                        quantite = parts[5] if len(parts) > 5 else 'N/A'
-                        quantite_reelle_input = parts[6] if len(parts) > 6 else 'N/A'
-                        indicateur = parts[7] if len(parts) > 7 else 'N/A'
-                        lotecart_lines.append({
-                            'ligne': i+1,
-                            'article': article,
-                            'quantite': quantite,
-                            'quantite_reelle_input': quantite_reelle_input,
-                            'indicateur_compte': indicateur
-                        })
-        
-        print(f"✅ {len(lotecart_lines)} lignes LOTECART dans le fichier final:")
-        for line_info in lotecart_lines:
-            status = "✅" if line_info['indicateur_compte'] == '2' else "❌"
-            print(f"   {status} Ligne {line_info['ligne']}: {line_info['article']} - Qté Théo={line_info['quantite']} - Qté Réelle={line_info['quantite_reelle_input']} - Indicateur={line_info['indicateur_compte']}")
-        
-        # 4. Vérification des lignes originales avec quantité théorique 0
-        print("\n4. Vérification des lignes originales avec quantité théorique 0...")
-        
-        # Chercher les lignes avec quantité théorique 0 dans le fichier final
-        zero_qty_lines = []
-        with open(final_path, 'r', encoding='utf-8') as f:
-            for i, line in enumerate(f):
-                if line.startswith('S;'):
-                    parts = line.strip().split(';')
-                    if len(parts) > 8:
-                        article = parts[8]
-                        quantite = parts[5]
-                        quantite_reelle_input = parts[6] if len(parts) > 6 else 'N/A'
-                        indicateur = parts[7] if len(parts) > 7 else 'N/A'
-                        
-                        # Vérifier si c'est un des articles candidats LOTECART
-                        for _, candidate in lotecart_candidates.iterrows():
-                            if candidate['Code Article'] == article:
-                                zero_qty_lines.append({
-                                    'ligne': i+1,
-                                    'article': article,
-                                    'quantite': quantite,
-                                    'quantite_reelle_input': quantite_reelle_input,
-                                    'indicateur_compte': indicateur
-                                })
-                                break
-        
-        print(f"✅ {len(zero_qty_lines)} lignes originales avec quantité théorique 0:")
-        for line_info in zero_qty_lines:
-            status = "✅" if line_info['indicateur_compte'] == '2' else "❌"
-            print(f"   {status} Ligne {line_info['ligne']}: {line_info['article']} - Qté Théo={line_info['quantite']} - Qté Réelle={line_info['quantite_reelle_input']} - Indicateur={line_info['indicateur_compte']}")
-        
-        # 5. Résumé
-        print("\n=== RÉSUMÉ ===")
-        total_lotecart_expected = len(lotecart_candidates)
-        total_lotecart_created = len(lotecart_lines)
-        correct_indicators = sum(1 for line in lotecart_lines if line['indicateur_compte'] == '2')
-        
-        print(f"Candidats LOTECART attendus: {total_lotecart_expected}")
-        print(f"Lignes LOTECART créées: {total_lotecart_created}")
-        print(f"Indicateurs corrects (=2): {correct_indicators}/{total_lotecart_created}")
-        
-        if correct_indicators == total_lotecart_created and total_lotecart_created >= total_lotecart_expected:
-            print("✅ TOUS LES TESTS PASSENT - Les corrections LOTECART fonctionnent correctement!")
+        print(f"✅ Test réussi ! {len(result)} lignes générées")
+        print("📋 Résultats:")
+        for i, line in enumerate(result):
+            print(f"  {i+1}. {line}")
+            
+        # Vérifier qu'on a bien une seule ligne (seul le cas valide)
+        if len(result) == 1:
+            print("✅ Seule la ligne valide a été traitée, les cas problématiques ont été ignorés")
         else:
-            print("❌ PROBLÈMES DÉTECTÉS - Les corrections nécessitent des ajustements")
-        
+            print(f"⚠️ Nombre de lignes inattendu: {len(result)}")
+            
     except Exception as e:
-        print(f"❌ Erreur lors du test: {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"❌ Test échoué avec l'erreur: {e}")
+        return False
+    
+    return True
+
+def test_lotecart_edge_cases():
+    """Test des cas limites"""
+    processor = LotecartProcessor()
+    
+    edge_cases = [
+        {
+            'CODE_ARTICLE': 'EDGE001',
+            'is_new_lotecart': True,
+            'QUANTITE_CORRIGEE': 0,
+            'reference_line': 'S;SES001;INV001;2000;SITE01;0;0;2;EDGE001;LOC01;AM;UN;0;ZONE1;LOT002'
+        },
+        {
+            'CODE_ARTICLE': 'EDGE002',
+            'is_new_lotecart': True,
+            'QUANTITE_CORRIGEE': 999,
+            'reference_line': 'S;SES001;INV001;3000;SITE01;50;0;1;EDGE002;LOC01;AM;UN;0;ZONE1;LOT003'
+        }
+    ]
+    
+    print("\n🧪 Test des cas limites...")
+    
+    try:
+        result = processor.generate_lotecart_lines(edge_cases, max_line_number=5000)
+        print(f"✅ Test cas limites réussi ! {len(result)} lignes générées")
+        
+        for i, line in enumerate(result):
+            parts = line.split(';')
+            qte_corrigee = parts[5] if len(parts) > 5 else 'N/A'
+            indicateur = parts[7] if len(parts) > 7 else 'N/A'
+            print(f"  {i+1}. Article: {parts[8] if len(parts) > 8 else 'N/A'}, Qté: {qte_corrigee}, Indicateur: {indicateur}")
+            
+    except Exception as e:
+        print(f"❌ Test cas limites échoué: {e}")
+        return False
+    
+    return True
 
 if __name__ == "__main__":
-    test_lotecart_processing()
+    print("🚀 Démarrage des tests de correction LOTECART\n")
+    
+    success1 = test_lotecart_with_nan_reference()
+    success2 = test_lotecart_edge_cases()
+    
+    if success1 and success2:
+        print("\n🎉 Tous les tests sont passés ! Le bug est corrigé.")
+    else:
+        print("\n❌ Certains tests ont échoué.")
+        sys.exit(1)

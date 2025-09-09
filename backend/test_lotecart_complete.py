@@ -24,7 +24,6 @@ def create_test_template():
             'Statut Article': 'AM',
             'Quantité Théorique': 0,  # LOTECART candidat
             'Quantité Réelle': 3,     # Quantité trouvée
-            'Numéro Lot': '',
             'Unites': 'UN',
             'Depots': 'BKE2',
             'Emplacements': 'BKE02'
@@ -36,7 +35,6 @@ def create_test_template():
             'Statut Article': 'AM',
             'Quantité Théorique': 0,  # LOTECART candidat
             'Quantité Réelle': 2,     # Quantité trouvée
-            'Numéro Lot': '',
             'Unites': 'UN',
             'Depots': 'BKE2',
             'Emplacements': 'BKE02'
@@ -48,7 +46,6 @@ def create_test_template():
             'Statut Article': 'AM',
             'Quantité Théorique': 100,  # Article normal
             'Quantité Réelle': 95,      # Écart négatif
-            'Numéro Lot': 'LOT311223',
             'Unites': 'UN',
             'Depots': 'BKE2',
             'Emplacements': 'BKE02'
