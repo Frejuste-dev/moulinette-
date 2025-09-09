@@ -19,7 +19,7 @@ class Config:
     SESSION_TIMEOUT: int = int(os.getenv('SESSION_TIMEOUT', 3600))  # 1 heure
     
     # Sécurité
-    SECRET_KEY: str = os.getenv('SECRET_KEY', 'dev-key-change-in-production')
+    SECRET_KEY: str = os.getenv('SECRET_KEY', 'une-cle-secrete-vraiment-aleatoire-et-difficile-a-deviner')
     ALLOWED_EXTENSIONS: set = field(default_factory=lambda: {'.csv', '.xlsx', '.xls'})
     
     # Configuration Sage X3 (externalisée vers YAML)

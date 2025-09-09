@@ -693,5 +693,8 @@ def delete_session_endpoint(session_id):
         return jsonify({'error': 'Session non trouvée'}), 404
 
 if __name__ == '__main__':
-    logger.info("Démarrage de l'application Moulinette Sage X3")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # Ce bloc n'est exécuté que lors d'un lancement direct (python app.py)
+    # En production, Gunicorn est le point d'entrée et n'exécute pas ce bloc.
+    is_debug_mode = os.environ.get('FLASK_ENV') != 'production'
+    logger.info(f"Démarrage de l'application en mode {'debug' if is_debug_mode else 'production'}")
+    app.run(debug=is_debug_mode, host='0.0.0.0', port=5000)
