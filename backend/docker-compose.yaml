@@ -37,7 +37,7 @@ services:
       dockerfile: Dockerfile
     container_name: sage_x3_frontend
     ports:
-      - "80:80"
+      - "3000:3000"
     depends_on:
       - backend
     restart: unless-stopped
