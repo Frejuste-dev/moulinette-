@@ -35,11 +35,75 @@ sage_x3:
       - LIFO
 
   lot_patterns:
-    # Patterns pour les lots avec priorité
-    type1_pattern: '^([A-Z0-9]{3,4})(\d{6})(\d+)$'  # Site + DDMMYY + numéro (priorité 1)
+    # Patterns pour les lots avec priorité (mis à jour selon la nouvelle logique)
+    type1_pattern: '^([A-Z0-9]{5})(\d{6})([A-Z0-9]{4})$'  # 5 caractères site + DDMMYY + 4 caractères (priorité 1)
     type2_pattern: '^LOT(\d{6})$'  # LOT + DDMMYY (priorité 2)
     # Note: LOTECART est détecté automatiquement quand quantité théorique = 0 ET quantité réelle > 0
     inventory_date_pattern: '(\d{2})(\d{2})INV'
+
+  # Liste des codes de site valides pour les lots priorité 1
+  priority1_site_codes:
+    - CANCB
+    - CANUA
+    - CB1CB
+    - CB1MA
+    - CB1PT
+    - CB1TV
+    - CB1TV
+    - CB1UA
+    - CB2CB
+    - CB2MA
+    - CB2PT
+    - CB2TV
+    - CB2TV
+    - CB1UA
+    - CDKMC
+    - CDKTV
+    - CKMA
+    - CKOCB
+    - CKOMA
+    - CKOPT
+    - CKOTY
+    - CKOTY
+    - CKQUA
+    - CPK05
+    - CPK06
+    - CPKCE
+    - CPKCJ
+    - CPKCO
+    - CPKMA
+    - CPKMC
+    - CPKPT
+    - CPKTV
+    - CPKTV
+    - CPKU1
+    - CPKU2
+    - CPKU3
+    - CPKU4
+    - CS1CB
+    - CS1MA
+    - CS1PT
+    - CS1TV
+    - CS1TV
+    - CS1UA
+    - CS2CB
+    - CS2MA
+    - CS2PT
+    - CS2TV
+    - CS2TV
+    - CS1UA
+    - CYKCB
+    - CYKMA
+    - CYKPT
+    - CYKTV
+    - CYKTV
+    - CYKUA
+    - SBACB
+    - SBAMA
+    - SBAPT
+    - SBATY
+    - SBAUY
+    - SBAUY
 
   lot_priority:
     # Ordre de priorité pour la répartition des écarts (seulement 2 types maintenant)

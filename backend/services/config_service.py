@@ -58,9 +58,20 @@ class ConfigService:
                     'distribution_strategies': ['FIFO', 'LIFO']
                 },
                 'lot_patterns': {
-                    'cpku_pattern': r'CPKU\d{3}(\d{2})(\d{2})\d{4}',
+                    'type1_pattern': r'^([A-Z0-9]{5})(\d{6})([A-Z0-9]{4})$',
+                    'type2_pattern': r'^LOT(\d{6})$',
                     'inventory_date_pattern': r'(\d{2})(\d{2})INV'
-                }
+                },
+                'priority1_site_codes': [
+                    'CANCB', 'CANUA', 'CB1CB', 'CB1MA', 'CB1PT', 'CB1TV', 'CB1UA',
+                    'CB2CB', 'CB2MA', 'CB2PT', 'CB2TV', 'CDKMC', 'CDKTV', 'CKMA',
+                    'CKOCB', 'CKOMA', 'CKOPT', 'CKOTY', 'CKQUA', 'CPK05', 'CPK06',
+                    'CPKCE', 'CPKCJ', 'CPKCO', 'CPKMA', 'CPKMC', 'CPKPT', 'CPKTV',
+                    'CPKU1', 'CPKU2', 'CPKU3', 'CPKU4', 'CS1CB', 'CS1MA', 'CS1PT',
+                    'CS1TV', 'CS1UA', 'CS2CB', 'CS2MA', 'CS2PT', 'CS2TV', 'CYKCB',
+                    'CYKMA', 'CYKPT', 'CYKTV', 'CYKUA', 'SBACB', 'SBAMA', 'SBAPT',
+                    'SBATY', 'SBAUY'
+                ]
             }
         }
     

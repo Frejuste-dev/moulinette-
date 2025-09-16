@@ -30,14 +30,19 @@ class FileProcessorService:
         # Patterns pour les différents types de lots (depuis la configuration)
         self.LOT_PATTERNS = {
             "type1": self.lot_patterns.get(
-                "type1_pattern", r"^([A-Z0-9]{3,4})(\d{6})(\d+)$"
+                "type1_pattern", r"^([A-Z0-9]{5})(\d{6})([A-Z0-9]{4})$"
             ),
             "type2": self.lot_patterns.get("type2_pattern", r"^LOT(\d{6})$"),
         }
+        
+        # Liste des codes de site valides pour priorité 1
+        self.PRIORITY1_SITE_CODES = set(config_service._config.get('sage_x3', {}).get('priority1_site_codes', []))
+        
         logger.info(
             f"FileProcessorService initialisé avec {len(self.SAGE_COLUMN_NAMES_ORDERED)} colonnes attendues"
         )
         logger.info(f"Colonnes: {self.SAGE_COLUMN_NAMES_ORDERED}")
+        logger.info(f"Codes de site priorité 1: {len(self.PRIORITY1_SITE_CODES)} codes chargés")
 
     def reload_config(self):
         """Recharge la configuration depuis le fichier externe"""
@@ -444,6 +449,7 @@ class FileProcessorService:
     ) -> Tuple[Union[datetime, None], str]:
         """
         Extrait une date d'un numéro de lot Sage X3 selon les 2 types principaux
+        Type 1 (Priorité 1): 5 caractères site + DDMMYY + 4 caractères
         Retourne (date, type_lot)
         """
         if pd.isna(lot_number):
@@ -451,15 +457,29 @@ class FileProcessorService:
 
         lot_str = str(lot_number).strip()
 
-        # Type 1: Lots avec site + date + numéro (ex: CPKU070725xxxx, CB2TV020425xxxx)
+        # Type 1: Lots avec 5 caractères site + date + 4 caractères (ex: CPKU1070725ABCD, CB2TV020425WXYZ)
         type1_match = re.match(self.LOT_PATTERNS["type1"], lot_str)
         if type1_match:
-            site_code = type1_match.group(1)
+            site_code = type1_match.group(1)  # 5 caractères
             date_part = type1_match.group(2)  # DDMMYY
+            suffix = type1_match.group(3)     # 4 caractères
+            
+            # Vérifier que le code de site est dans la liste des codes valides
+            if site_code not in self.PRIORITY1_SITE_CODES:
+                logger.debug(f"Code de site {site_code} non reconnu comme priorité 1")
+                return None, "unknown"
+            
             try:
                 day = int(date_part[:2])
                 month = int(date_part[2:4])
                 year = int(date_part[4:6]) + 2000
+                
+                # Validation de la date
+                if not (1 <= day <= 31 and 1 <= month <= 12):
+                    logger.warning(f"Date invalide dans le lot type 1: {lot_number} (jour={day}, mois={month})")
+                    return None, "type1"
+                
+                logger.debug(f"Lot priorité 1 détecté: {site_code} + {day:02d}/{month:02d}/{year} + {suffix}")
                 return datetime(year, month, day), "type1"
             except ValueError:
                 logger.warning(f"Date invalide dans le lot type 1: {lot_number}")
@@ -473,6 +493,12 @@ class FileProcessorService:
                 day = int(date_part[:2])
                 month = int(date_part[2:4])
                 year = int(date_part[4:6]) + 2000
+                
+                # Validation de la date
+                if not (1 <= day <= 31 and 1 <= month <= 12):
+                    logger.warning(f"Date invalide dans le lot type 2: {lot_number}")
+                    return None, "type2"
+                
                 return datetime(year, month, day), "type2"
             except ValueError:
                 logger.warning(f"Date invalide dans le lot type 2: {lot_number}")
