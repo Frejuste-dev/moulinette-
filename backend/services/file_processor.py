@@ -488,21 +488,9 @@ class FileProcessorService:
         # Type 2: LOT + date (ex: LOT311224)
         type2_match = re.match(self.LOT_PATTERNS["type2"], lot_str)
         if type2_match:
-            date_part = type2_match.group(1)  # DDMMYY
-            try:
-                day = int(date_part[:2])
-                month = int(date_part[2:4])
-                year = int(date_part[4:6]) + 2000
-                
-                # Validation de la date
-                if not (1 <= day <= 31 and 1 <= month <= 12):
-                    logger.warning(f"Date invalide dans le lot type 2: {lot_number}")
-                    return None, "type2"
-                
-                return datetime(year, month, day), "type2"
-            except ValueError:
-                logger.warning(f"Date invalide dans le lot type 2: {lot_number}")
-                return None, "type2"
+            # Type 2: Pas d'extraction de date, traitement sur le premier lot trouvé
+            logger.debug(f"Lot type 2 détecté (sans extraction de date): {lot_number}")
+            return None, "type2"  # Pas de date, juste le type
 
         return None, "unknown"
 
@@ -560,8 +548,8 @@ class FileProcessorService:
                     Date_Min=(
                         "Date_Lot",
                         lambda x: (
-                            min(d for d in x if d is not None)
-                            if any(d for d in x if d is not None)
+                            min(d for d in x if d is not None and pd.notna(d))
+                            if any(d for d in x if d is not None and pd.notna(d))
                             else None
                         ),
                     ),
@@ -573,7 +561,17 @@ class FileProcessorService:
                 .reset_index()
             )
 
-            return aggregated.sort_values("Date_Min", na_position="last")
+            # Tri intelligent : d'abord par type de lot prioritaire, puis par date si disponible
+            def sort_key(row):
+                type_priority = {"type1": 1, "type2": 2, "lotecart": 3, "unknown": 4}
+                priority = type_priority.get(row["Type_Lot_Prioritaire"], 4)
+                date_value = row["Date_Min"] if pd.notna(row["Date_Min"]) else datetime.min
+                return (priority, date_value)
+            
+            aggregated["_sort_key"] = aggregated.apply(sort_key, axis=1)
+            aggregated = aggregated.sort_values("_sort_key").drop("_sort_key", axis=1)
+            
+            return aggregated
 
         except Exception as e:
             logger.error(f"Erreur d'agrégation: {str(e)}", exc_info=True)

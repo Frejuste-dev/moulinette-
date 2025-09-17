@@ -59,7 +59,7 @@ class ConfigService:
                 },
                 'lot_patterns': {
                     'type1_pattern': r'^([A-Z0-9]{5})(\d{6})([A-Z0-9]{4})$',
-                    'type2_pattern': r'^LOT(\d{6})$',
+                    'type2_pattern': r'^LOT[A-Z0-9]+$',
                     'inventory_date_pattern': r'(\d{2})(\d{2})INV'
                 },
                 'priority1_site_codes': [

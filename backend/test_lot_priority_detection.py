@@ -42,10 +42,16 @@ def test_priority1_lot_detection():
         
         # Lots priorité 2 (LOT + date)
         {
-            "lot": "LOT311224",
+            "lot": "LOT202425",
             "expected_type": "type2",
-            "expected_date": datetime(2024, 12, 31),
-            "description": "Lot type 2 valide"
+            "expected_date": None,  # Pas de date pour type 2
+            "description": "Lot type 2 valide (sans date)"
+        },
+        {
+            "lot": "LOT123ABC",
+            "expected_type": "type2",
+            "expected_date": None,
+            "description": "Lot type 2 avec caractères alphanumériques"
         },
         
         # Lots avec codes de site non reconnus

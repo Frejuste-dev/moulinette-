@@ -37,7 +37,7 @@ sage_x3:
   lot_patterns:
     # Patterns pour les lots avec priorité (mis à jour selon la nouvelle logique)
     type1_pattern: '^([A-Z0-9]{5})(\d{6})([A-Z0-9]{4})$'  # 5 caractères site + DDMMYY + 4 caractères (priorité 1)
-    type2_pattern: '^LOT(\d{6})$'  # LOT + DDMMYY (priorité 2)
+    type2_pattern: '^LOT[A-Z0-9]+$'  # LOT + caractères quelconques (priorité 2, pas de date)
     # Note: LOTECART est détecté automatiquement quand quantité théorique = 0 ET quantité réelle > 0
     inventory_date_pattern: '(\d{2})(\d{2})INV'
 
