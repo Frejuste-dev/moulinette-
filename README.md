@@ -11,11 +11,11 @@
 
 | Fonctionnalité | Description | Technologies |
 |----------------|------------|--------------|
-| **Import Sage X3** | Traitement des fichiers CSV avec en-têtes E/L et données S | Pandas, OpenPyXL |
+| **Import Sage X3** | Traitement des fichiers CSV avec en-têtes E/L et données S, sélection de dépôt | Pandas, OpenPyXL |
 | **Gestion Multi-Inventaires** | Support des fichiers avec plusieurs lignes L (inventaires multiples) | Python, Pandas |
 | **Types de Lots Avancés** | Reconnaissance de 3 types de numéros de lot avec priorités | RegEx, Python |
 | **Calcul Automatique** | Détection des écarts entre stocks théoriques/réels | NumPy, Pandas |
-| **Répartition Intelligente** | Distribution FIFO/LIFO avec priorité sur les types de lots | Python, Pandas |
+| **Répartition Intelligente** | Distribution par dépôt: A/R (jeunes) pour écarts positifs, AM/RM (vieux) pour négatifs | Python, Pandas |
 | **Traçabilité Complète** | Conservation des quantités réelles saisies dans le fichier final | Python, Pandas |
 | **API RESTful** | Interface moderne pour intégration | Flask, CORS |
 | **Gestion de Sessions** | Suivi complet des opérations | Python, Logging |
@@ -52,6 +52,28 @@ python app.py
 
 ## 📚 Utilisation
 
+### Choix du dépôt (Accueil)
+
+Deux options sont proposées dans l'UI et impactent la validation et la distribution:
+
+- Conforme: A, AM
+- Non Conforme: R, RM
+
+Le choix est transmis au backend via le paramètre `depot` lors de l'upload.
+
+### Validation des fichiers à l'upload
+
+- Si le fichier contient une ligne avec `STATUT = Q` → le traitement est bloqué:
+  "Traitement impossible car ce fichier contient des Lots en Statut Q".
+- Compatibilité dépôt ↔ statuts:
+  - Dépôt conforme (A, AM) → le fichier ne doit contenir que A/AM. Présence de R/RM → blocage: "Traitement impossible car Fichier incompatible au dépôt".
+  - Dépôt non conforme (R, RM) → le fichier ne doit contenir que R/RM. Présence de A/AM → même blocage.
+
+### Agrégation et Template
+
+- Les lignes sont agrégées sans tenir compte du statut; la colonne `Statut` n'apparaît pas dans le template Excel.
+- Les quantités décimales sont prises en charge (virgule en sortie, même format que l'entrée).
+
 ### Structure du Fichier Final
 
 Le fichier CSV final généré contient les quantités réelles saisies dans la **colonne G** (`QUANTITE_REELLE_IN_INPUT`), permettant une traçabilité complète :
@@ -66,6 +88,11 @@ S;SESSION;INV001;1000;SITE01;95;95;2;ART001;EMP001;A;UN;0;ZONE1;LOT001
 #                        F  G  H
 #                     Théo Réel Ind
 ```
+
+### Règles de distribution des écarts
+
+- Écart positif → affecté sur les lots `A` (les plus jeunes d'abord). S'il reste un reliquat positif, il est affecté sur les lots `R` (les plus jeunes).
+- Écart négatif → retiré des lots `AM` (les plus vieux d'abord). S'il reste un reliquat négatif, il est retiré des lots `RM` (les plus vieux).
 
 ### Types de Numéros de Lot Supportés
 
@@ -104,15 +131,19 @@ sequenceDiagram
 
 | Méthode |             Endpoint          |	Description |
 :---------:-------------------------------:--------------:
-|  POST	  |          /api/upload          |	Import fichier Sage X3
+|  POST  |          /api/upload          |	Import fichier Sage X3 (FormData: file, depot={conforme|non_conforme})
 |  POST	  |          /api/process         |	Traitement fichier complété
 |  GET	  |  /api/download/<type>/<id>	  | Téléchargement fichiers
 |  GET	  |        /api/sessions          |Liste des sessions
 
-Exemple de requête :
+Exemples de requêtes :
 
 ```bash
-curl -X POST -F "file=@inventaire.csv" http://localhost:5000/api/upload
+# Dépôt Conforme (A, AM)
+curl -X POST -F "file=@inventaire.csv" -F "depot=conforme" http://localhost:5000/api/upload
+
+# Dépôt Non Conforme (R, RM)
+curl -X POST -F "file=@inventaire.csv" -F "depot=non_conforme" http://localhost:5000/api/upload
 ```
 
 ## 🧩 Structure du Code
